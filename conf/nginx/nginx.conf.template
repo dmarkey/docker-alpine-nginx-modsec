@@ -4,26 +4,18 @@ worker_processes auto;
 load_module modules/ngx_http_modsecurity_module.so;
 load_module modules/ngx_http_geoip2_module.so;
 
-error_log  /var/log/nginx/error.log warn;
+error_log  /dev/stdout warn;
 pid        /var/run/nginx.pid;
 
 events {
     worker_connections  2048;
     multi_accept on;
 }
-
 http {
     index index.html index.php;
     include mime.types;
     default_type  application/octet-stream;
-
-    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
-                      '$status $body_bytes_sent "$http_referer" '
-                      '"$http_user_agent" "$http_x_forwarded_for"';
-
-    access_log  /var/log/nginx/access.log  main;
-
-    sendfile                    on;
+    access_log  off;
     keepalive_timeout           5;
     autoindex                   off;
     port_in_redirect            off;
@@ -42,6 +34,7 @@ http {
     geo $limit{
         default 1;
         172.0.0.0/8 0;
+        10.0.0.0/8 0;
     }
 
     map $limit $limit_key {
@@ -70,10 +63,9 @@ http {
     }
 
     # specify which locations to allow/block
-    map $geoip2_data_country_code $allowed_country {
+    map $geoip2_data_country_code $banned_country {
         default no;
-        '' yes;
-        US yes;
+        RU yes;
     }
 
     # map HSTS header
@@ -112,13 +104,7 @@ http {
         ~*(WebZIP|Wget|Widow|Wotbox|WWW-Mechanize|WWWOFFLE) 1;
         ~*(zermelo|Zeus|Zeus.*Webster|ZyBorg) 1;
     }
-
-    # custom error pages
     error_page 403 /errors/403.html;
-    error_page 404 /errors/404.html;
-    error_page 410 /errors/410.html;
-    error_page 444 /errors/444.html;
-    error_page 500 501 502 503 504 /errors/5xx.html;
 
     include /etc/nginx/conf.d/*.conf;
 }
